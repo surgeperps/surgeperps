@@ -1,0 +1,25 @@
+# Why: Anchor's workspace config: which programs exist, their program IDs,
+#      which cluster and wallet to use, and how to run the tests.
+# How: `anchor build`, `anchor deploy` and `anchor test` read this file.
+#      Program IDs here must match declare_id! in each lib.rs (`anchor keys sync`).
+
+[toolchain]
+package_manager = "npm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+oracle = "DsdJCXmXKXiYPEcWY1u2FFiTNZvsKKwwnUjybpfniPT7"
+perp = "3ybvQ2fhnTV3qmzTSG6d8i5JpNqVpxe9D8e56arPsHhD"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""

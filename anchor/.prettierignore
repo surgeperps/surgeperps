@@ -1,0 +1,10 @@
+# Why: stops Prettier from reformatting generated or installed files.
+# How: `npm run lint` skips these paths.
+
+.anchor
+.DS_Store
+target
+node_modules
+dist
+build
+test-ledger

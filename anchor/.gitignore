@@ -1,0 +1,10 @@
+# Why: keeps Anchor build output, local validator ledgers and installed packages out of git.
+# How: git skips these paths. target/ also holds program keypairs: never commit them.
+
+.anchor
+.DS_Store
+target
+**/*.rs.bk
+node_modules
+test-ledger
+.yarn

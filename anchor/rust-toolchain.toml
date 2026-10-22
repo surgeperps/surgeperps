@@ -1,0 +1,7 @@
+# Why: pins the Rust version so the programs build the same on every machine and in CI.
+# How: rustup reads this and uses the listed channel inside this folder.
+
+[toolchain]
+channel = "1.89.0"
+components = ["rustfmt","clippy"]
+profile = "minimal"

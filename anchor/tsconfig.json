@@ -1,0 +1,12 @@
+// Why: compiler settings for the TypeScript tests in tests/.
+// How: ts-mocha reads this when `anchor test` runs the tests.
+{
+  "compilerOptions": {
+    "types": ["mocha", "chai"],
+    "typeRoots": ["./node_modules/@types"],
+    "lib": ["es2015"],
+    "module": "commonjs",
+    "target": "es6",
+    "esModuleInterop": true
+  }
+}

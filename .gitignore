@@ -1,0 +1,22 @@
+# Why: keeps secrets, build output and machine-local junk out of git.
+# How: git skips every path matching a pattern below. Keypairs and .env
+#      files hold private keys and RPC URLs; never commit them.
+
+# secrets
+.env
+*.keypair.json
+id.json
+
+# dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+.next/
+target/
+.anchor/
+test-ledger/
+
+# keeper's local data dumps
+data/
+
+.DS_Store
