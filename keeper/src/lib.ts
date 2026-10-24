@@ -45,14 +45,15 @@ export async function analyzeSlot(slot: number, tipAccounts: Set<string>) {
   });
   if (!block) return null;
 
+  let base = 0;
   let priority = 0;
   let tips = 0;
   for (const tx of block.transactions) {
     const meta = tx.meta;
     if (!meta) continue;
-    priority +=
-      Number(meta.fee) -
-      BASE_FEE_PER_SIGNATURE * tx.transaction.signatures.length;
+    const txBase = BASE_FEE_PER_SIGNATURE * tx.transaction.signatures.length;
+    base += txBase;
+    priority += Number(meta.fee) - txBase;
     const keys = tx.transaction.message.getAccountKeys({
       accountKeysFromLookups: meta.loadedAddresses ?? null,
     });
@@ -63,5 +64,5 @@ export async function analyzeSlot(slot: number, tipAccounts: Set<string>) {
       }
     }
   }
-  return { slot, txs: block.transactions.length, priority, tips };
+  return { slot, txs: block.transactions.length, base, priority, tips };
 }

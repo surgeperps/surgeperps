@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "tsx src/index.ts",
+    "backfill": "tsx src/backfill.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
