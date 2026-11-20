@@ -1,5 +1,5 @@
 # Why: tells Cargo how to build the `perp` program and which crates it uses.
-# How: anchor-lang is the only dependency; the features are Anchor's standard build switches.
+# How: depends on anchor-lang and on the oracle crate (cpi feature) to read the Oracle account type; the features are Anchor's standard build switches.
 
 [package]
 name = "perp"
@@ -17,7 +17,7 @@ cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build"]
+idl-build = ["anchor-lang/idl-build", "oracle/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
@@ -25,6 +25,7 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = "0.32.1"
+oracle = { path = "../oracle", features = ["cpi"] }
 
 
 [lints.rust]

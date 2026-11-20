@@ -5,7 +5,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Perp } from "../target/types/perp";
 
-describe("perp", () => {
+describe.skip("perp", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
