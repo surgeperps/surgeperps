@@ -1,5 +1,5 @@
 // Why: compiler settings for the Next.js app.
-// How: Next reads this on `next dev` / `next build` and may add fields the first time it runs.
+// How: Next reads this on `next dev` / `next build`; "@/..." imports resolve to src/.
 {
   "compilerOptions": {
     "target": "ES2022",
@@ -8,13 +8,17 @@
     "noEmit": true,
     "module": "esnext",
     "moduleResolution": "bundler",
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowJs": false,
     "incremental": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] },
     "plugins": [{ "name": "next" }]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
   "exclude": ["node_modules"]
 }

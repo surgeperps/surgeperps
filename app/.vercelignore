@@ -1,0 +1,6 @@
+# Why: `vercel` uploads this folder; keep local secrets and build junk out of the upload.
+.env
+.env*.local
+.next
+node_modules
+*.tsbuildinfo
