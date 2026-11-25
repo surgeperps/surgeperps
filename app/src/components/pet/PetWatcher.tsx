@@ -18,6 +18,7 @@ const INTRO: Record<string, string> = {
   "/": "Hi, I'm Kai! This is the Surge fee index: what Solana blocks cost right now.",
   "/trade": "Trade desk! Long if you think fees go up, short if you think they calm down.",
   "/hedge": "Pay users' fees? Type your monthly bill and I'll size a hedge for you.",
+  "/docs": "The docs! How Surge works, every formula, and a calculator to try them.",
 };
 
 export function PetWatcher() {

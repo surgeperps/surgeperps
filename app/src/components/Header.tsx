@@ -1,5 +1,5 @@
 "use client";
-// Why: the same top bar on every page: brand, the three app sections, which
+// Why: the same top bar on every page: brand, the app sections and docs, which
 //      network you're on, and the wallet button.
 // How: highlights the current route; shows a "Demo feed" badge when the
 //      programs aren't deployed on this cluster so nobody mistakes it for live data;
@@ -19,6 +19,7 @@ const NAV = [
   { href: "/", label: "Index" },
   { href: "/trade", label: "Trade" },
   { href: "/hedge", label: "Hedge" },
+  { href: "/docs", label: "Docs" },
 ];
 
 export function Header() {
