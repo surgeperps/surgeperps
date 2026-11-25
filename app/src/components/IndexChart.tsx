@@ -3,7 +3,8 @@
 //      relative to the last minutes and whether a spike is building.
 // How: a hand-drawn SVG line + area chart sized to its container (so text
 //      stays crisp), with a toggle between the combined index and the two
-//      sub-indices, a faint grid, an emphasised last point and a hover readout.
+//      sub-indices, a faint grid, a pulsing last point and a hover readout.
+//      The line draws itself in on load and on every series switch.
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { IndexPoint } from "./SurgeData";
 import { indexSol, times } from "@/lib/format";
@@ -78,9 +79,15 @@ export function IndexChart({ points, height = 300, showToggle = true }: { points
                 <text x={w - pad.r + 8} y={Y(v) + 4} className="axis">{indexSol(v)}</text>
               </g>
             ))}
-            <path d={area} className="area" />
-            <path d={path} className="line" />
-            {last && <circle cx={last[0]} cy={last[1]} r={5} className="dot" />}
+            <defs>
+              <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="var(--orange)" stopOpacity="0.28" />
+                <stop offset="1" stopColor="var(--orange)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path key={"a" + series} d={area} className="area" fill="url(#areaFill)" />
+            <path key={"l" + series} d={path} className="line draw" pathLength={1} />
+            {last && <g><circle cx={last[0]} cy={last[1]} r={5} className="halo" /><circle cx={last[0]} cy={last[1]} r={5} className="dot" /></g>}
             {hp && hover !== null && (
               <g>
                 <line x1={xy[hover][0]} x2={xy[hover][0]} y1={pad.t} y2={height - pad.b} className="cross" />

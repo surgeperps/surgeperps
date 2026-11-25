@@ -10,6 +10,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useSurge } from "./SurgeData";
 import { useTrader } from "./useTrader";
+import { usePet } from "./pet/PetProvider";
 import { LAMPORTS, previewTrade, rawToSlots, slotsToRaw, solToLamports, notional, fundingRatePerDay, type PositionState } from "@/lib/math";
 import { indexSol, pct, slots as fmtSlots, sol, times } from "@/lib/format";
 
@@ -22,12 +23,17 @@ export function OrderTicket({ position, hasAccount, onDone, initialSide = "long"
   const { connected } = useWallet();
   const { setVisible } = useWalletModal();
   const t = useTrader(onDone);
-  const [side, setSide] = useState<"long" | "short">(initialSide);
+  const pet = usePet();
+  const [side, setSideState] = useState<"long" | "short">(initialSide);
+  const setSide = (s: "long" | "short") => {
+    if (s !== side) pet.say(s === "long" ? "Long: you earn when Solana fees rise. Apps use this to lock in their fee bill." : "Short: you earn when fees fall. Validators use this to lock in their income.", { mood: s === "long" ? "excited" : "thinking", action: "hop" });
+    setSideState(s);
+  };
   const [sizeStr, setSizeStr] = useState(String(initialSize));
   const [depStr, setDepStr] = useState("");
   const [depTouched, setDepTouched] = useState(false);
 
-  useEffect(() => { setSide(initialSide); setSizeStr(String(initialSize)); }, [initialSide, initialSize]);
+  useEffect(() => { setSideState(initialSide); setSizeStr(String(initialSize)); }, [initialSide, initialSize]);
 
   const sizeSlots = Math.max(0, Number(sizeStr) || 0);
   const delta = (side === "long" ? 1n : -1n) * slotsToRaw(sizeSlots);
@@ -72,7 +78,7 @@ export function OrderTicket({ position, hasAccount, onDone, initialSide = "long"
 
   return (
     <section className="card ticket" aria-label="Order ticket">
-      <div className="side-seg" role="radiogroup" aria-label="Side">
+      <div className="side-seg" data-side={side} role="radiogroup" aria-label="Side">
         <button type="button" role="radio" aria-checked={side === "long"} className={side === "long" ? "long on" : "long"} onClick={() => setSide("long")}>Long<small>fees go up</small></button>
         <button type="button" role="radio" aria-checked={side === "short"} className={side === "short" ? "short on" : "short"} onClick={() => setSide("short")}>Short<small>fees go down</small></button>
       </div>

@@ -6,13 +6,26 @@ import { PublicKey } from "@solana/web3.js";
 import oracleIdl from "@/idl/oracle.json";
 import perpIdl from "@/idl/perp.json";
 
-export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com";
 
-export const ORACLE_PROGRAM_ID = new PublicKey(process.env.NEXT_PUBLIC_ORACLE_ID || oracleIdl.address);
-export const PERP_PROGRAM_ID = new PublicKey(process.env.NEXT_PUBLIC_PERP_ID || perpIdl.address);
+
+/** Env values pasted into a dashboard often carry spaces, quotes or the "KEY=" prefix; strip them. */
+const clean = (v: string | undefined) => (v ?? "").trim().replace(/^[A-Z_]+=/, "").replace(/^["']|["']$/g, "").trim();
+
+export const RPC_URL = clean(process.env.NEXT_PUBLIC_RPC_URL) || "https://api.devnet.solana.com";
+// Values are passed in as literal process.env.NEXT_PUBLIC_* reads: Next.js only inlines those into the browser bundle.
+function programId(name: string, raw: string | undefined, fallback: string): PublicKey {
+  const v = clean(raw) || fallback;
+  try {
+    return new PublicKey(v);
+  } catch {
+    throw new Error(`${name} is not a valid program ID: "${v}". Set it to the base58 address only, e.g. ${fallback}`);
+  }
+}
+export const ORACLE_PROGRAM_ID = programId("NEXT_PUBLIC_ORACLE_ID", process.env.NEXT_PUBLIC_ORACLE_ID, oracleIdl.address);
+export const PERP_PROGRAM_ID = programId("NEXT_PUBLIC_PERP_ID", process.env.NEXT_PUBLIC_PERP_ID, perpIdl.address);
 
 /** "Normal" index used for the ×-vs-baseline figure; defaults to the keeper's first live reading (0.005554 SOL/slot). */
-export const INDEX_BASELINE = BigInt(process.env.NEXT_PUBLIC_INDEX_BASELINE || "5554000");
+export const INDEX_BASELINE = BigInt((process.env.NEXT_PUBLIC_INDEX_BASELINE ?? "").replace(/[^0-9]/g, "") || "5554000");
 
 export const CLUSTER: "devnet" | "mainnet-beta" | "localnet" | "custom" =
   /devnet/.test(RPC_URL) ? "devnet" : /mainnet/.test(RPC_URL) ? "mainnet-beta" : /localhost|127\.0\.0\.1/.test(RPC_URL) ? "localnet" : "custom";

@@ -11,6 +11,7 @@ import { IndexChart } from "@/components/IndexChart";
 import { Freshness } from "@/components/Freshness";
 import { MarketInfo } from "@/components/MarketInfo";
 import { indexSol, times } from "@/lib/format";
+import { Num } from "@/components/Num";
 
 export default function IndexPage() {
   const { oracle, history, mode, error } = useSurge();
@@ -21,15 +22,16 @@ export default function IndexPage() {
   const w = oracle ? oracle.weightBps / 100 : 79;
 
   return (
-    <div className="stack">
+    <div className="stack reveal">
       {mode === "demo" && <div className="banner">Demo feed. The oracle isn't deployed on this network yet, so these numbers are simulated. Once the keeper publishes, this page goes live on its own.</div>}
       {error && <div className="banner bad">{error}</div>}
 
       <section className="hero card">
+        <div className="hero-fx" aria-hidden="true"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><polyline points="0,80 300,80 322,80 336,40 352,112 366,62 378,80 600,80" pathLength={1} /></svg></div>
         <div className="hero-l">
-          <div className="eyebrow">Surge fee index</div>
-          <div className="hero-num mono">{oracle ? indexSol(oracle.index) : "—"}<span className="hero-unit">SOL / slot</span></div>
-          <div className="hero-sub"><b className="orange mono">{oracle ? times(oracle.index) : "—"}</b> <span className="muted">vs normal</span> <Freshness /></div>
+          <div className="eyebrow"><span className="live-dot" aria-hidden="true" />Surge fee index</div>
+          <div className="hero-num mono">{oracle ? <Num value={Number(oracle.index)} format={indexSol} /> : "—"}<span className="hero-unit">SOL / slot</span></div>
+          <div className="hero-sub"><b className="orange mono">{oracle ? <Num value={Number(oracle.index)} format={times} /> : "—"}</b> <span className="muted">vs normal</span> <Freshness /></div>
           <p className="muted lead">One number for what Solana costs right now: the median of what blocks paid over the last 100 slots, combined on-chain from priority fees and Jito tips.</p>
           <div className="hero-cta">
             <Link className="btn primary" href="/trade">Trade the index</Link>
@@ -37,25 +39,25 @@ export default function IndexPage() {
           </div>
         </div>
         <div className="hero-r">
-          <div className="kpi"><small>Now</small><b className="mono">{oracle ? times(oracle.index) : "—"}</b></div>
+          <div className="kpi"><small>Now</small><b className="mono">{oracle ? <Num value={Number(oracle.index)} format={times} /> : "—"}</b></div>
           <div className="kpi"><small>Peak · loaded range</small><b className="mono">{peak ? times(peak) : "—"}</b></div>
           <div className="kpi"><small>Median · loaded range</small><b className="mono">{median ? times(median) : "—"}</b></div>
         </div>
       </section>
 
-      <section className="card pad">
+      <section className="card pad chart-card">
         <IndexChart points={history} height={320} />
       </section>
 
       <div className="grid2">
         <section className="card pad sub">
-          <div className="sub-head"><h2>Priority fees · P</h2><span className="chip">{w}% weight</span></div>
-          <div className="sub-num mono">{oracle ? indexSol(oracle.priority) : "—"} <span className="muted">SOL / slot</span></div>
+          <div className="sub-head"><h2><i className="dot-p" aria-hidden="true" />Priority fees · P</h2><span className="chip">{w}% weight</span></div>
+          <div className="sub-num mono">{oracle ? <Num value={Number(oracle.priority)} format={indexSol} /> : "—"} <span className="muted">SOL / slot</span></div>
           <p className="muted small">Each transaction's fee minus the 5,000-lamport base fee per signature, summed per block, median of the last 100 slots.</p>
         </section>
         <section className="card pad sub">
-          <div className="sub-head"><h2>Jito tips · T</h2><span className="chip">{100 - w}% weight</span></div>
-          <div className="sub-num mono">{oracle ? indexSol(oracle.tips) : "—"} <span className="muted">SOL / slot</span></div>
+          <div className="sub-head"><h2><i className="dot-t" aria-hidden="true" />Jito tips · T</h2><span className="chip">{100 - w}% weight</span></div>
+          <div className="sub-num mono">{oracle ? <Num value={Number(oracle.tips)} format={indexSol} /> : "—"} <span className="muted">SOL / slot</span></div>
           <p className="muted small">SOL arriving at Jito&apos;s eight tip accounts in each block. Most fee dashboards leave tips out; they&apos;re about a fifth of all fee spend.</p>
         </section>
       </div>

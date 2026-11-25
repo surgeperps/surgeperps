@@ -28,7 +28,7 @@ function Trade() {
   const hasAccount = !!position;
 
   return (
-    <div className="stack">
+    <div className="stack reveal">
       {mode === "demo" && <div className="banner">Demo feed. The programs aren&apos;t deployed on this network yet, so prices are simulated and trading is off.</div>}
       <MarketHeader />
       <div className="trade-grid">

@@ -163,7 +163,10 @@ export function SurgeData({ children }: { children: ReactNode }) {
         const ok = sigs.filter((s) => !s.err).map((s) => s.signature);
         lastSig.current = ok[0] ?? "";
         const parser = new EventParser(oProg.programId, oProg.coder);
-        const pts: IndexPoint[] = [];
+        const merge = (pts: IndexPoint[]) => setHistory((h) => {
+          const merged = [...pts, ...h].sort((a, b) => a.t - b.t);
+          return merged.filter((p, i) => i === 0 || p.t !== merged[i - 1].t).slice(-500);
+        });
         // small batches, spaced out (~5 requests/s): free RPC plans cap requests per second
         // and answer bursts with 429s. 60 updates = the last ~10 min at one publish per 10 s.
         for (let k = 0; k < ok.length && !cancelled; k += 5) {
@@ -172,6 +175,7 @@ export function SurgeData({ children }: { children: ReactNode }) {
           try {
             txs = await connection.getTransactions(ok.slice(k, k + 5), { maxSupportedTransactionVersion: 0, commitment: "confirmed" });
           } catch { continue; }
+          const pts: IndexPoint[] = [];
           for (const tx of txs) {
             if (!tx?.meta?.logMessages) continue;
             for (const ev of parser.parseLogs(tx.meta.logMessages)) {
@@ -180,13 +184,8 @@ export function SurgeData({ children }: { children: ReactNode }) {
               pts.push({ t: (tx.blockTime ?? 0) * 1000, index: Number(d.index.toString()), priority: Number(d.priorityIndex.toString()), tips: Number(d.tipIndex.toString()) });
             }
           }
-        }
-        if (!cancelled && pts.length) {
-          pts.sort((a, b) => a.t - b.t);
-          setHistory((h) => {
-            const merged = [...pts, ...h].sort((a, b) => a.t - b.t);
-            return merged.filter((p, i) => i === 0 || p.t !== merged[i - 1].t).slice(-500);
-          });
+          // show each batch as it arrives, so the chart fills in instead of waiting for all of them
+          if (!cancelled && pts.length) merge(pts);
         }
       } catch {}
     })();

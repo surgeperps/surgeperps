@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useSurge } from "@/components/SurgeData";
 import { LAMPORTS, marginReq, slotsToRaw } from "@/lib/math";
 import { indexSol, times } from "@/lib/format";
+import { Num } from "@/components/Num";
 
 const SCEN = [0.5, 1, 2, 5, 10, 40];
 
@@ -37,7 +38,7 @@ export default function HedgePage() {
   const curve = (f: (m: number) => number) => Array.from({ length: 60 }, (_, i) => 0.5 * Math.pow(80, i / 59)).map((m, i) => `${i ? "L" : "M"}${xs(m).toFixed(1)},${ys(f(m)).toFixed(1)}`).join(" ");
 
   return (
-    <div className="stack">
+    <div className="stack reveal">
       <section className="card pad hedge-intro">
         <div className="eyebrow">Hedge app</div>
         <h1>Lock in your Solana gas bill</h1>
@@ -54,9 +55,9 @@ export default function HedgePage() {
 
           <div className="sized">
             <small>Surge sizes it for you</small>
-            <b className="mono">Long {sizeSlots.toLocaleString("en-US", { maximumFractionDigits: 0 })} slots</b>
+            <b className="mono">Long <Num value={sizeSlots} format={(v) => v.toLocaleString("en-US", { maximumFractionDigits: 0 })} /> slots</b>
             <span className="muted small">at today&apos;s index {oracle ? `${indexSol(oracle.index)} SOL/slot (${times(oracle.index)})` : "—"}</span>
-            <span className="muted small">Collateral needed ≈ <b className="mono ink">{margin.toFixed(2)} SOL</b>{market ? ` (${market.params.initialMarginBps / 100}% initial margin)` : ""}, plus a buffer</span>
+            <span className="muted small">Collateral needed ≈ <b className="mono ink"><Num value={margin} format={(v) => v.toFixed(2)} /> SOL</b>{market ? ` (${market.params.initialMarginBps / 100}% initial margin)` : ""}, plus a buffer</span>
           </div>
           <Link className="btn primary wide" href={`/trade?side=long&size=${Math.round(sizeSlots)}`}>Open this hedge</Link>
           <p className="fine">A perp locks your cost rather than capping it: if fees fall, the hedge loses about what your bill saves. Funding and the taker fee are the price of the cover. SOL-denominated; SOL price moves aren&apos;t hedged.</p>
@@ -79,7 +80,7 @@ export default function HedgePage() {
             <thead><tr><th>Fee index</th><th>Your bill</th><th>Hedge pays</th><th>Net cost</th></tr></thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.m} className={r.m === 1 ? "now" : ""}>
+                <tr key={r.m} className={r.m === 1 ? "now" : ""} style={{ animationDelay: `${SCEN.indexOf(r.m) * 60}ms` }}>
                   <td className="mono">{r.m}×{r.m === 1 ? " (today)" : ""}</td>
                   <td className="mono">{r.billAt.toFixed(2)} SOL</td>
                   <td className={`mono ${r.payout > 0 ? "orange" : r.payout < 0 ? "red" : ""}`}>{r.payout >= 0 ? "+" : "−"}{Math.abs(r.payout).toFixed(2)} SOL</td>

@@ -4,7 +4,7 @@
 // How: polyfills Buffer for Anchor in the browser, then nests the Solana
 //      ConnectionProvider + WalletProvider (Phantom, Solflare, Backpack… are
 //      found automatically via the Wallet Standard), the wallet modal, our
-//      SurgeData feed and the toast stack.
+//      SurgeData feed, Kai (the pet, who hears every toast) and the toast stack.
 import { Buffer } from "buffer";
 if (typeof window !== "undefined" && !(window as unknown as { Buffer?: unknown }).Buffer) (window as unknown as { Buffer: typeof Buffer }).Buffer = Buffer;
 
@@ -15,6 +15,9 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 import { RPC_URL } from "@/lib/config";
 import { SurgeData } from "./SurgeData";
 import { Toasts } from "./Toasts";
+import { PetProvider } from "./pet/PetProvider";
+import { Pet } from "./pet/Pet";
+import { PetWatcher } from "./pet/PetWatcher";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -23,7 +26,11 @@ export function Providers({ children }: { children: ReactNode }) {
       <WalletProvider wallets={[]} autoConnect onError={(e) => console.warn(e)}>
         <WalletModalProvider>
           <SurgeData>
-            <Toasts>{children}</Toasts>
+            <PetProvider>
+              <Toasts>{children}</Toasts>
+              <PetWatcher />
+              <Pet />
+            </PetProvider>
           </SurgeData>
         </WalletModalProvider>
       </WalletProvider>
