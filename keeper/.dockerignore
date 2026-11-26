@@ -1,0 +1,10 @@
+# keep secrets, local data and build output out of the image
+.env
+.env*
+*.keypair.json
+id.json
+node_modules
+dist
+data
+images
+*.tsbuildinfo
