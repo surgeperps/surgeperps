@@ -4,7 +4,7 @@
 // How: a small context with push/update; toasts stack bottom-right (above
 //      Kai) and success/error ones close themselves after a few seconds.
 //      Every toast is also handed to Kai, who acts it out and says it in plain
-//      words (and out loud, if the voice is on).
+//      words.
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { explorerTx } from "@/lib/config";
 import { usePet, type Mood } from "./pet/PetProvider";
@@ -39,7 +39,7 @@ export function Toasts({ children }: { children: ReactNode }) {
   const tell = useCallback((t: Partial<Toast>) => {
     if (!t.kind || !t.title) return;
     const { text, mood } = petLine(t.kind, t.title, t.body);
-    pet.say(text, { mood, voice: true, link: t.sig ? explorerTx(t.sig) : undefined, ms: t.kind === "pending" ? 20000 : undefined });
+    pet.say(text, { mood, link: t.sig ? explorerTx(t.sig) : undefined, ms: t.kind === "pending" ? 20000 : undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pet.say]);
   const close = (id: number) => setList((l) => l.filter((t) => t.id !== id));

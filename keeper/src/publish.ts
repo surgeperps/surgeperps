@@ -17,6 +17,7 @@ import {
   TransactionInstruction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
+import { rpcUrl } from "./lib.js";
 
 export const ORACLE_PROGRAM_ID = new PublicKey(
   process.env.ORACLE_PROGRAM_ID ?? "DsdJCXmXKXiYPEcWY1u2FFiTNZvsKKwwnUjybpfniPT7",
@@ -59,7 +60,7 @@ export class Publisher {
   private pda: PublicKey | undefined;
   constructor(
     readonly authority: Keypair,
-    url = process.env.PUBLISH_RPC_URL ?? "https://api.devnet.solana.com",
+    url = rpcUrl("PUBLISH_RPC_URL", "https://api.devnet.solana.com"),
   ) {
     this.connection = new Connection(url, "confirmed");
   }

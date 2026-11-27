@@ -8,7 +8,7 @@
 //      mouth and extras, a-<action> plays a one-off body animation. On its own
 //      it blinks, follows the pointer with its eyes, fidgets every few seconds
 //      and dozes off after 90 s without activity. Clicking him gets a reaction. The
-//      speech bubble shows the latest line from PetProvider. It can be muted or
+//      speech bubble shows the latest line from PetProvider. It can be
 //      tucked away into a small button.
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
@@ -24,7 +24,7 @@ const PET_LINES = ["Hey! I'm Kai. I watch Solana fees so you don't have to.", "H
 const SLEEP_AFTER_MS = 90_000;
 
 export function Pet() {
-  const { mood, line, action, voiceOn, hidden, say, act, setMood, clearLine, toggleVoice, setHidden } = usePet();
+  const { mood, line, action, hidden, say, act, setMood, clearLine, setHidden } = usePet();
   const root = useRef<HTMLDivElement>(null);
   const [blink, setBlink] = useState(false);
   const [three, setThree] = useState(false);
@@ -108,13 +108,6 @@ export function Pet() {
         </div>
       )}
       <div className="pet-ctrl">
-        <button type="button" onClick={toggleVoice} aria-label={voiceOn ? "Mute Kai" : "Let Kai talk"} title={voiceOn ? "Mute voice" : "Turn voice on"}>
-          {voiceOn ? (
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z" /><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" /></svg>
-          ) : (
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z" /><path d="m17 9 5 6m0-6-5 6" fill="none" /></svg>
-          )}
-        </button>
         <button type="button" onClick={() => setHidden(true)} aria-label="Tuck Kai away" title="Tuck away">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12" fill="none" /></svg>
         </button>

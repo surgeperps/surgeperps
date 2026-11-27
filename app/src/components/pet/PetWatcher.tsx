@@ -5,7 +5,6 @@
 // How: watches the shared live feed, the wallet and the route, and turns
 //      changes into Kai lines. Market comments are rate-limited (one per 25 s)
 //      so Kai never chatters over itself; page intros play once per session.
-//      Only big moments (spike, stale index) are spoken aloud.
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -44,7 +43,7 @@ export function PetWatcher() {
   // wallet connect / disconnect
   useEffect(() => {
     if (wasConnected.current === null) { wasConnected.current = connected; return; }
-    if (connected && !wasConnected.current && publicKey) say(`Hey ${short(publicKey.toBase58())}! Wallet connected. Let's go.`, { mood: "excited", voice: true });
+    if (connected && !wasConnected.current && publicKey) say(`Hey ${short(publicKey.toBase58())}! Wallet connected. Let's go.`, { mood: "excited" });
     if (!connected && wasConnected.current) say("Wallet disconnected. See you soon!", { mood: "sad", action: "wave" });
     wasConnected.current = connected;
   }, [connected, publicKey, say]);
@@ -69,7 +68,7 @@ export function PetWatcher() {
     const x = (Number(oracle.index) / Number(INDEX_BASELINE)).toFixed(2);
     if (change >= 0.25) {
       lastMarketTalk.current = now;
-      say(`Whoa! Fees just jumped ${Math.round(change * 100)}%. The index is ${x}× normal. Longs are smiling.`, { mood: "panic", voice: true });
+      say(`Whoa! Fees just jumped ${Math.round(change * 100)}%. The index is ${x}× normal. Longs are smiling.`, { mood: "panic" });
     } else if (change >= 0.08) {
       lastMarketTalk.current = now;
       say(`Fees are climbing: up ${Math.round(change * 100)}%, now ${x}× normal.`, { mood: "excited" });
@@ -84,7 +83,7 @@ export function PetWatcher() {
     if (!oracle || !market || slot === 0n || mode !== "live") return;
     const stale = slot - oracle.lastUpdateSlot > market.params.maxStalenessSlots;
     if (stale && !wasStale.current) {
-      say("Uh oh, the index went stale. Trades are paused until the keeper publishes again.", { mood: "worried", voice: true });
+      say("Uh oh, the index went stale. Trades are paused until the keeper publishes again.", { mood: "worried" });
       setBase("worried");
     } else if (!stale && wasStale.current) {
       say("The index is fresh again. Trading's back on!", { mood: "happy" });

@@ -14,6 +14,10 @@ skip-lint = false
 oracle = "DsdJCXmXKXiYPEcWY1u2FFiTNZvsKKwwnUjybpfniPT7"
 perp = "3ybvQ2fhnTV3qmzTSG6d8i5JpNqVpxe9D8e56arPsHhD"
 
+[programs.devnet]
+oracle = "DsdJCXmXKXiYPEcWY1u2FFiTNZvsKKwwnUjybpfniPT7"
+perp = "3ybvQ2fhnTV3qmzTSG6d8i5JpNqVpxe9D8e56arPsHhD"
+
 [registry]
 url = "https://api.apr.dev"
 

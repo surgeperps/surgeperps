@@ -1,60 +1,171 @@
 "use client";
 // Why: the index is a time series; people need to see where it is now
-//      relative to the last minutes and whether a spike is building.
-// How: a hand-drawn SVG line + area chart sized to its container (so text
-//      stays crisp), with a toggle between the combined index and the two
-//      sub-indices, a faint grid, a pulsing last point and a hover readout.
-//      The line draws itself in on load and on every series switch.
-import { useEffect, useMemo, useRef, useState } from "react";
+//      relative to the last minutes and whether a spike is building, and
+//      they should see it move, not jump, when a new value lands.
+// How: TradingView's lightweight-charts (canvas, ~45 KB) draws a curved
+//      area series with a crosshair, pan/zoom and a pulsing last point.
+//      Full history is loaded with setData only when it really changes
+//      (first load, backfill, series switch). A single new update is
+//      animated instead: a new point is added at the old value and eased to
+//      the new value over ~0.9 s with series.update() each frame, so the line,
+//      the last-price label and the auto-scaled axis glide into place.
+//      Colours come from the CSS theme tokens and follow light/dark switches.
+import { useEffect, useRef, useState } from "react";
+import {
+  AreaSeries, ColorType, CrosshairMode, LastPriceAnimationMode, LineType, createChart,
+  type IChartApi, type ISeriesApi, type UTCTimestamp,
+} from "lightweight-charts";
 import type { IndexPoint } from "./SurgeData";
 import { indexSol, times } from "@/lib/format";
 
 export type Series = "index" | "priority" | "tips";
 const LABEL: Record<Series, string> = { index: "Combined", priority: "Priority fees", tips: "Jito tips" };
+const TWEEN_MS = 900;
+
+type Pt = { time: UTCTimestamp; value: number };
+
+/** one point per second, ascending (the library requires unique, sorted times) */
+function toData(points: IndexPoint[], s: Series): Pt[] {
+  const out: Pt[] = [];
+  for (const p of points) {
+    const time = Math.floor(p.t / 1000) as UTCTimestamp;
+    const v = p[s];
+    if (out.length && out[out.length - 1].time >= time) {
+      if (out[out.length - 1].time === time) out[out.length - 1] = { time, value: v };
+      continue;
+    }
+    out.push({ time, value: v });
+  }
+  return out;
+}
+
+function css(name: string, fallback: string) {
+  if (typeof window === "undefined") return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+function alpha(hex: string, a: number) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+function themeOptions() {
+  const orange = css("--orange", "#ff7518");
+  return {
+    chart: {
+      layout: { background: { type: ColorType.Solid, color: "transparent" }, textColor: css("--muted", "#5e666b"), fontFamily: css("--font-mono", "ui-monospace, monospace"), fontSize: 11, attributionLogo: false },
+      grid: { vertLines: { visible: false }, horzLines: { color: css("--line-2", "#f1ecdc") } },
+      rightPriceScale: { borderVisible: false },
+      timeScale: { borderVisible: false },
+      crosshair: {
+        vertLine: { color: alpha(css("--ink", "#0b1215"), 0.35), labelBackgroundColor: css("--ink", "#0b1215") },
+        horzLine: { color: alpha(css("--ink", "#0b1215"), 0.25), labelBackgroundColor: orange },
+      },
+    },
+    series: { lineColor: orange, topColor: alpha(orange, 0.3), bottomColor: alpha(orange, 0), crosshairMarkerBackgroundColor: orange, crosshairMarkerBorderColor: css("--card", "#ffffff") },
+  };
+}
+
+/** axis labels: hh:mm on whole minutes, hh:mm:ss between them (so 30 s ticks don't repeat a label) */
+const clock = (sec: number) => {
+  const d = new Date(sec * 1000);
+  return d.toLocaleTimeString([], d.getSeconds() ? { hour: "2-digit", minute: "2-digit", second: "2-digit" } : { hour: "2-digit", minute: "2-digit" });
+};
 
 export function IndexChart({ points, height = 300, showToggle = true }: { points: IndexPoint[]; height?: number; showToggle?: boolean }) {
   const [series, setSeries] = useState<Series>("index");
   const box = useRef<HTMLDivElement>(null);
-  const [w, setW] = useState(800);
-  const [hover, setHover] = useState<number | null>(null);
+  const chart = useRef<IChartApi | null>(null);
+  const area = useRef<ISeriesApi<"Area"> | null>(null);
+  const shown = useRef<Pt[]>([]); // what the chart currently holds (final values)
+  const raf = useRef(0);
+  const [tip, setTip] = useState<Pt | null>(null);
+  const empty = points.length < 2;
 
+  // create once
   useEffect(() => {
-    if (!box.current) return;
-    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.floor(e.contentRect.width))));
-    ro.observe(box.current);
-    return () => ro.disconnect();
-  }, []);
+    if (!box.current || empty) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = themeOptions();
+    const c = createChart(box.current, {
+      ...t.chart,
+      autoSize: true,
+      handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: true },
+      handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      localization: { timeFormatter: (s: number) => new Date(s * 1000).toLocaleTimeString(), priceFormatter: (v: number) => indexSol(v) },
+      timeScale: { ...t.chart.timeScale, timeVisible: true, secondsVisible: false, rightOffset: 3, tickMarkFormatter: (s: number) => clock(s) },
+      rightPriceScale: { ...t.chart.rightPriceScale, scaleMargins: { top: 0.14, bottom: 0.08 } },
+      crosshair: { ...t.chart.crosshair, mode: CrosshairMode.Magnet },
+    });
+    const s = c.addSeries(AreaSeries, {
+      ...t.series,
+      lineWidth: 2,
+      lineType: LineType.Curved,
+      priceLineVisible: true,
+      priceLineStyle: 2,
+      priceLineColor: t.series.lineColor,
+      lastPriceAnimation: reduce ? LastPriceAnimationMode.Disabled : LastPriceAnimationMode.Continuous,
+      crosshairMarkerRadius: 5,
+      priceFormat: { type: "custom", minMove: 1, formatter: (v: number) => indexSol(v) },
+    });
+    c.subscribeCrosshairMove((p) => {
+      const d = p.time != null ? (p.seriesData.get(s) as Pt | undefined) : undefined;
+      setTip(d && typeof d.value === "number" ? { time: p.time as UTCTimestamp, value: d.value } : null);
+    });
+    chart.current = c;
+    area.current = s;
 
-  const pad = { l: 8, r: 64, t: 12, b: 26 };
-  const data = points.map((p) => ({ t: p.t, v: p[series] }));
-  const { path, area, ticks, xy, min, max } = useMemo(() => {
-    if (data.length < 2) return { path: "", area: "", ticks: [] as number[], xy: [] as [number, number][], min: 0, max: 0 };
-    let lo = Math.min(...data.map((d) => d.v)), hi = Math.max(...data.map((d) => d.v));
-    const span = hi - lo || hi * 0.05 || 1;
-    lo -= span * 0.12; hi += span * 0.12;
-    const t0 = data[0].t, t1 = data[data.length - 1].t || t0 + 1;
-    const X = (t: number) => pad.l + ((t - t0) / Math.max(1, t1 - t0)) * (w - pad.l - pad.r);
-    const Y = (v: number) => pad.t + (1 - (v - lo) / (hi - lo)) * (height - pad.t - pad.b);
-    const xy = data.map((d) => [X(d.t), Y(d.v)] as [number, number]);
-    const path = "M" + xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" L");
-    const area = `${path} L${xy[xy.length - 1][0].toFixed(1)},${height - pad.b} L${xy[0][0].toFixed(1)},${height - pad.b} Z`;
-    const ticks = [0, 1, 2, 3].map((i) => lo + ((hi - lo) * (i + 0.5)) / 4);
-    return { path, area, ticks, xy, min: lo, max: hi };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, series, w, height]);
+    // follow theme switches (data-theme on <html>, or the OS setting)
+    const retheme = () => { const n = themeOptions(); c.applyOptions(n.chart); s.applyOptions({ ...n.series, priceLineColor: n.series.lineColor }); };
+    const mo = new MutationObserver(retheme);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    mq.addEventListener("change", retheme);
 
-  const Y = (v: number) => pad.t + (1 - (v - min) / (max - min || 1)) * (height - pad.t - pad.b);
-  const last = xy[xy.length - 1];
-  const hp = hover !== null ? data[hover] : null;
+    return () => {
+      cancelAnimationFrame(raf.current);
+      mo.disconnect();
+      mq.removeEventListener("change", retheme);
+      c.remove();
+      chart.current = null;
+      area.current = null;
+      shown.current = [];
+    };
+  }, [empty]);
 
-  function onMove(e: React.MouseEvent<SVGSVGElement>) {
-    if (!xy.length) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - r.left;
-    let best = 0;
-    for (let i = 1; i < xy.length; i++) if (Math.abs(xy[i][0] - x) < Math.abs(xy[best][0] - x)) best = i;
-    setHover(best);
-  }
+  // feed data: full reload when history really changed, a tween when one point was appended
+  useEffect(() => {
+    const s = area.current, c = chart.current;
+    if (!s || !c) return;
+    const next = toData(points, series);
+    const prev = shown.current;
+    const appendedOne = prev.length > 0 && next.length >= 2
+      && next[next.length - 2].time === prev[prev.length - 1].time
+      && next[next.length - 1].time > prev[prev.length - 1].time
+      && next.length - prev.length <= 1;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    cancelAnimationFrame(raf.current);
+
+    if (!appendedOne || reduce) {
+      s.setData(next);
+      shown.current = next;
+      if (prev.length === 0) c.timeScale().fitContent();
+      return;
+    }
+
+    // ease the new point in from the previous value
+    const from = prev[prev.length - 1].value;
+    const target = next[next.length - 1];
+    shown.current = next;
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / TWEEN_MS);
+      const e = 1 - Math.pow(1 - k, 3);
+      try { s.update({ time: target.time, value: from + (target.value - from) * e }); } catch { return; }
+      if (k < 1) raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+  }, [points, series]);
 
   return (
     <div className="chart">
@@ -68,40 +179,16 @@ export function IndexChart({ points, height = 300, showToggle = true }: { points
           <span className="muted small">{points.length} updates</span>
         </div>
       )}
-      <div ref={box} className="chart-box" style={{ height }}>
-        {xy.length < 2 ? (
+      <div className="chart-box" style={{ height }} role="img" aria-label={`${LABEL[series]} index over the last ${points.length} updates`}>
+        {empty ? (
           <div className="chart-empty">Waiting for index updates…</div>
         ) : (
-          <svg width={w} height={height} onMouseMove={onMove} onMouseLeave={() => setHover(null)} role="img" aria-label={`${LABEL[series]} index over the last ${points.length} updates`}>
-            {ticks.map((v) => (
-              <g key={v}>
-                <line x1={pad.l} x2={w - pad.r} y1={Y(v)} y2={Y(v)} className="grid" />
-                <text x={w - pad.r + 8} y={Y(v) + 4} className="axis">{indexSol(v)}</text>
-              </g>
-            ))}
-            <defs>
-              <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="var(--orange)" stopOpacity="0.28" />
-                <stop offset="1" stopColor="var(--orange)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path key={"a" + series} d={area} className="area" fill="url(#areaFill)" />
-            <path key={"l" + series} d={path} className="line draw" pathLength={1} />
-            {last && <g><circle cx={last[0]} cy={last[1]} r={5} className="halo" /><circle cx={last[0]} cy={last[1]} r={5} className="dot" /></g>}
-            {hp && hover !== null && (
-              <g>
-                <line x1={xy[hover][0]} x2={xy[hover][0]} y1={pad.t} y2={height - pad.b} className="cross" />
-                <circle cx={xy[hover][0]} cy={xy[hover][1]} r={4} className="dot" />
-              </g>
-            )}
-            <text x={pad.l} y={height - 6} className="axis">{new Date(data[0].t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</text>
-            <text x={w - pad.r} y={height - 6} className="axis" textAnchor="end">{new Date(data[data.length - 1].t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</text>
-          </svg>
+          <div ref={box} className="chart-canvas" />
         )}
-        {hp && (
+        {tip && (
           <div className="chart-tip mono">
-            {indexSol(hp.v)} SOL/slot · {times(hp.v)}
-            <span className="muted"> · {new Date(hp.t).toLocaleTimeString()}</span>
+            {indexSol(tip.value)} SOL/slot · {times(tip.value)}
+            <span className="muted"> · {new Date(tip.time * 1000).toLocaleTimeString()}</span>
           </div>
         )}
       </div>

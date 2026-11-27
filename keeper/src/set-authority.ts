@@ -8,6 +8,7 @@
 //      Dry run (prints what it would do, sends nothing): add DRY_RUN=1.
 import { Connection, PublicKey } from "@solana/web3.js";
 import { Publisher, loadAuthority, oraclePda, setAuthority } from "./publish.js";
+import { rpcUrl } from "./lib.js";
 
 async function main() {
   const next = process.env.NEW_AUTHORITY;
@@ -15,7 +16,7 @@ async function main() {
   const nextKey = new PublicKey(next);
   delete process.env.KEYPAIR_JSON; // always sign with the local deploy wallet file
   const current = await loadAuthority();
-  const url = process.env.PUBLISH_RPC_URL ?? "https://api.devnet.solana.com";
+  const url = rpcUrl("PUBLISH_RPC_URL", "https://api.devnet.solana.com");
   const conn = new Connection(url, "confirmed");
   const pub = new Publisher(current, url);
   const before = await pub.read();

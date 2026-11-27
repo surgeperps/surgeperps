@@ -73,10 +73,10 @@ function useHealthWatch(tone: "good" | "mid" | "bad" | null, ratio: number | nul
     const r = ratio != null && isFinite(ratio) ? ratio.toFixed(2) : "";
     if (tone === "bad") {
       setBase("panic");
-      say(`Careful! Your margin is down to ${r}× maintenance. Add collateral or reduce, or you could be liquidated.`, { mood: "panic", voice: true });
+      say(`Careful! Your margin is down to ${r}× maintenance. Add collateral or reduce, or you could be liquidated.`, { mood: "panic" });
     } else if (tone === "mid") {
       setBase("worried");
-      if (was === "good" || was === null) say(`Your margin is getting thin: ${r}× maintenance. Maybe add a little collateral?`, { mood: "worried", voice: was === "good" });
+      if (was === "good" || was === null) say(`Your margin is getting thin: ${r}× maintenance. Maybe add a little collateral?`, { mood: "worried" });
       else say("Phew, a bit safer now. Still keep an eye on it.", { mood: "worried" });
     } else {
       setBase(null);

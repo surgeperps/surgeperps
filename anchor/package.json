@@ -5,7 +5,9 @@
   "scripts": {
     "test": "anchor test",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "setup": "ts-node -P tsconfig.json -O '{\"lib\":[\"es2020\"],\"types\":[\"node\"]}' scripts/setup.ts",
+    "setup:devnet": "RPC_URL=https://api.devnet.solana.com npm run setup"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1"

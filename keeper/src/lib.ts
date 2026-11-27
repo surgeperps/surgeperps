@@ -9,7 +9,23 @@
 import "dotenv/config";
 import { Connection } from "@solana/web3.js";
 
-export const connection = new Connection(process.env.RPC_URL!, "confirmed");
+/**
+ * Reads an RPC URL from the environment. Values pasted into a host's dashboard
+ * often carry quotes, spaces or a "NAME=" prefix; those are stripped. A missing
+ * or malformed value stops the keeper with a message naming the variable
+ * (never printing the URL itself, which contains the API key).
+ */
+export function rpcUrl(name: string, fallback?: string): string {
+  const v = (process.env[name] ?? "").trim().replace(/^["']|["']$/g, "").trim().replace(/^[A-Z_]+=/, "").replace(/^["']|["']$/g, "").trim() || fallback || "";
+  if (!/^https?:\/\//.test(v)) {
+    const seen = v ? `starts with "${v.slice(0, 8)}…" (${v.length} chars)` : "is empty or not set";
+    console.error(`${name} ${seen}. Set it to the full URL, e.g. https://mainnet.helius-rpc.com/?api-key=… with no quotes or spaces.`);
+    process.exit(1);
+  }
+  return v;
+}
+
+export const connection = new Connection(rpcUrl("RPC_URL"), "confirmed");
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export const median = (a: number[]): number => {
   if (a.length === 0) return 0;
